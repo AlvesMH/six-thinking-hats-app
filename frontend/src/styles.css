@@ -739,4 +739,40 @@ button {
     top: 8px;
     padding: 8px;
   }
+    /* Mobile: hat selector behaves like a compact dropdown */
+  .hat-tabs {
+    grid-template-columns: 1fr; /* one column on mobile */
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  /* Active hat button shows a chevron affordance */
+  .hat-tabs button[aria-expanded] {
+    padding-right: 46px; /* room for chevron */
+  }
+
+  .hat-tabs button[aria-expanded]::after {
+    content: '▾';
+    position: absolute;
+    right: 14px;
+    top: 14px;
+    color: var(--muted2);
+    font-weight: 900;
+    font-size: 0.95rem;
+  }
+
+  .hat-tabs button[aria-expanded="true"]::after {
+    content: '▴';
+  }
+
+  /* Collapsed: hide the description line to keep it short */
+  .hat-tabs button[aria-expanded="false"] small {
+    display: none;
+  }
+
+  /* Expanded: show descriptions for the options */
+  .hat-tabs button[aria-expanded="true"] small,
+  .hat-tabs button[aria-expanded="true"] ~ button small {
+    display: block;
+  }
 }

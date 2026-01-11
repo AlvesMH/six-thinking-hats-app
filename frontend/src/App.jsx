@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import HowToUse from './HowToUse'
 
@@ -147,6 +147,7 @@ export default function App() {
       setAnalysis(data.analysis)
       if (data?.meta?.answer_length) setAnswerLength(data.meta.answer_length)
       setSelectedHat('blue')
+      setHatMenuOpen(false)
       if (resultsRef.current) resultsRef.current.scrollIntoView({ behavior: 'smooth' })
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.')
@@ -154,6 +155,38 @@ export default function App() {
       setLoading(false)
     }
   }
+
+  // Mobile UX: collapse hat selector to only show the active hat
+  const [isMobile, setIsMobile] = useState(false)
+  const [hatMenuOpen, setHatMenuOpen] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+
+    const update = () => {
+      const mobile = mq.matches
+      setIsMobile(mobile)
+      if (!mobile) setHatMenuOpen(false)
+    }
+
+    update()
+
+    // Modern browsers
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }
+
+    // Legacy fallback WITHOUT deprecated mq.addListener/removeListener
+    const onResize = () => update()
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
+  }, [])
 
   const handleDownload = async () => {
     if (!analysis) return
@@ -422,21 +455,64 @@ export default function App() {
           </div>
 
           <div className="hat-tabs" role="tablist" aria-label="Hat selection">
-            {HATS.map((hat) => (
-              <button
-                key={hat.key}
-                type="button"
-                role="tab"
-                aria-selected={selectedHat === hat.key}
-                className={selectedHat === hat.key ? `active hat-${hat.key}` : `hat-${hat.key}`}
-                onClick={() => setSelectedHat(hat.key)}
-                disabled={!analysis}
-              >
-                <span className={`hat-dot hat-dot--${hat.key}`} aria-hidden="true" />
-                <span>{hat.label}</span>
-                <small>{hat.description}</small>
-              </button>
-            ))}
+            {isMobile ? (
+              <>
+                {/* Always show the active hat; tap to expand/collapse */}
+                <button
+                  key={selectedHat}
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  aria-expanded={hatMenuOpen}
+                  className={`active hat-${selectedHat}`}
+                  onClick={() => analysis && setHatMenuOpen((v) => !v)}
+                  disabled={!analysis}
+                >
+                  <span className={`hat-dot hat-dot--${selectedHat}`} aria-hidden="true" />
+                  <span>{activeHat?.label}</span>
+                  <small>
+                    {activeHat?.description} · {hatMenuOpen ? 'Tap to hide' : 'Tap to change'} ▾
+                  </small>
+                </button>
+
+                {/* When expanded, show the other hats */}
+                {hatMenuOpen &&
+                  HATS.filter((h) => h.key !== selectedHat).map((hat) => (
+                    <button
+                      key={hat.key}
+                      type="button"
+                      role="tab"
+                      aria-selected="false"
+                      className={`hat-${hat.key}`}
+                      onClick={() => {
+                        setSelectedHat(hat.key)
+                        setHatMenuOpen(false)
+                      }}
+                      disabled={!analysis}
+                    >
+                      <span className={`hat-dot hat-dot--${hat.key}`} aria-hidden="true" />
+                      <span>{hat.label}</span>
+                      <small>{hat.description}</small>
+                    </button>
+                  ))}
+              </>
+            ) : (
+              HATS.map((hat) => (
+                <button
+                  key={hat.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedHat === hat.key}
+                  className={selectedHat === hat.key ? `active hat-${hat.key}` : `hat-${hat.key}`}
+                  onClick={() => setSelectedHat(hat.key)}
+                  disabled={!analysis}
+                >
+                  <span className={`hat-dot hat-dot--${hat.key}`} aria-hidden="true" />
+                  <span>{hat.label}</span>
+                  <small>{hat.description}</small>
+                </button>
+              ))
+            )}
           </div>
 
           <div className="results-body">
